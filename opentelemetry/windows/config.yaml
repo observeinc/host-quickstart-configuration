@@ -1,0 +1,121 @@
+extensions:
+  health_check:
+connectors:
+  count:
+receivers:
+  otlp:  # Define the "otlp" receiver
+    protocols:
+      http:
+        max_request_body_size: 10485760
+  filestats:
+    include: 'C:\Program Files\OpenTelemetry Collector\config.yaml'
+    collection_interval: 1m
+    initial_delay: 60s
+    
+  prometheus:
+    config:
+      scrape_configs:
+        - job_name: 'otel-collector'
+          scrape_interval: 5s
+          static_configs:
+            - targets: ['0.0.0.0:8888']
+  hostmetrics:
+    collection_interval: 20s
+    scrapers:
+      cpu:
+        metrics:
+          system.cpu.utilization:
+            enabled: true
+      load:
+      memory:
+        metrics:
+          system.memory.utilization:
+            enabled: true
+      disk:
+      filesystem:
+        metrics:
+          system.filesystem.utilization:
+            enabled: true
+      network:
+      paging:
+        metrics:
+          system.paging.utilization:
+            enabled: true
+  windowseventlog/application:
+    channel: Application
+    retry_on_failure:
+      enabled: true
+  windowseventlog/security:
+    channel: Security
+    retry_on_failure:
+      enabled: true
+  windowseventlog/system:
+    channel: System
+    retry_on_failure:
+      enabled: true
+  filelog:
+    include: [ 'C:\Program Files\OpenTelemetry Collector\config.yaml' ]
+    start_at: beginning
+    poll_interval: 5m
+    multiline:
+      line_end_pattern: ENDOFLINEPATTERN
+processors:
+  
+  transform/truncate:
+    log_statements:
+      - context: log
+        statements:
+          - truncate_all(attributes, 4095)
+          - truncate_all(resource.attributes, 4095)
+
+  memory_limiter:
+    check_interval: 1s
+    limit_percentage: 80
+    spike_limit_percentage: 25
+  
+  batch:
+  
+  resourcedetection:
+    detectors: [env, system]
+    system:
+      hostname_sources: ["os"]
+      resource_attributes:
+        host.id:
+          enabled: true
+  
+  resourcedetection/cloud:
+    detectors: ["gcp", "ec2", "azure"]
+    timeout: 2s
+    override: false
+
+exporters:
+  logging:
+    # loglevel: "DEBUG"
+  otlphttp:
+    endpoint: "${OBSERVE_COLLECTION_ENDPOINT}/v2/otel"
+    headers:
+      authorization: "Bearer ${OBSERVE_TOKEN}"
+
+service:
+  pipelines:
+    
+    metrics:
+      receivers: [hostmetrics, prometheus, count]
+      processors: [memory_limiter, resourcedetection, resourcedetection/cloud, batch]
+      exporters: [logging, otlphttp]
+
+    metrics/filestats:
+       receivers: [filestats]
+       processors: [resourcedetection, resourcedetection/cloud]
+       exporters: [logging, otlphttp]
+
+    logs/filelog:
+       receivers: [filelog]
+       processors: [resourcedetection, resourcedetection/cloud]
+       exporters: [logging, otlphttp]
+    
+    logs:
+      receivers: [otlp, windowseventlog/application, windowseventlog/security, windowseventlog/system]
+      processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
+      exporters: [logging, otlphttp, count]
+
