@@ -6,7 +6,7 @@ param (
 )
 
 $installer_url="https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.90.1/otelcol-contrib_0.90.1_windows_amd64.tar.gz"
-$config_url="https://raw.githubusercontent.com/observeinc/host-config-scripts/main/opentelemetry/windows/config.yaml"
+$config_url="https://raw.githubusercontent.com/observeinc/host-explorer-configuration/main/opentelemetry/windows/config.yaml"
 $local_installer="c:\temp\otelcol-contrib_0.90.1_windows_amd64.tar.gz"
 $otel_install_dir="$env:ProgramFiles\OpenTelemetry Collector"
 $otel_install_config="$otel_install_dir\config.yaml"
