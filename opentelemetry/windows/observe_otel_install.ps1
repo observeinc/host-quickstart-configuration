@@ -20,7 +20,7 @@ Invoke-WebRequest -Uri $installer_url -OutFile $local_installer
 
 if(-not (Test-Path "${otel_install_dir}\otelcol-contrib.exe")){
     try{
-        tarp -xzf $local_installer -C $otel_install_dir
+        tar -xzf $local_installer -C $otel_install_dir
     }catch [System.Management.Automation.CommandNotFoundException] {
         Write-Host "tar not found, trying 7z"
         & "$env:ProgramFiles\7-zip\7z" x $local_installer -o"$temp_dir" -aoa
