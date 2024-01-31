@@ -17,11 +17,16 @@ curl https://raw.githubusercontent.com/observeinc/host-quickstart-configuration/
 ```
 
 ### Windows Install
-This script assumes that 7zip is installed.  To install please refer to 7zip documentation - https://www.7-zip.org/download.html.
+This script assumes that you are executing the script with admin privileges, and that tar is installed and accessible from powershell
 
 ```
-[Net.ServicePointManager]::SecurityProtocol = "Tls, Tls11, Tls12, Ssl3"; Invoke-WebRequest -UseBasicParsing "https://github.com/observeinc/host-quickstart-configuration/blob/main/opentelemetry/windows/observe_otel_install.ps1" -outfile .\agents.ps1; .\agents.ps1 -observe_token "${OBSERVE_TOKEN}" -OBSERVE_COLLECTION_ENDPOINT  "${OBSERVE_COLLECTION_ENDPOINT}"
+[Net.ServicePointManager]::SecurityProtocol = "Tls, Tls11, Tls12, Ssl3"; Invoke-WebRequest -UseBasicParsing "https://raw.githubusercontent.com/observeinc/host-quickstart-configuration/main/opentelemetry/windows/observe_otel_install.ps1" -outfile .\agents.ps1; .\agents.ps1 -observe_token "${OBSERVE_TOKEN}" -OBSERVE_COLLECTION_ENDPOINT  "${OBSERVE_COLLECTION_ENDPOINT}"
 
+```
+
+#### Check Status
+```
+Get-Service OpenTelemetry
 ```
 
 ### Mac
