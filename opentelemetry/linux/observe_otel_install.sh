@@ -135,6 +135,14 @@ receivers:
       - type: filter
         expr: 'body matches "otel-contrib"'
 
+  journald:
+    directory: /run/log/journal
+    units:
+      - cron
+      - ssh
+      - systemd
+
+    priority: info
 processors:
   
   transform/truncate:
@@ -212,6 +220,11 @@ service:
       receivers: [otlp, filelog]
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
       exporters: [logging, otlp/custom, count]
+
+    logs/journal:
+      receivers: [otlp, journald]
+      processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
+      exporters: [logging, otlphttp]
 
   extensions: [health_check, file_storage/filelogreceiver, file_storage/otlpoutput]
 
