@@ -63,6 +63,7 @@ install_apt(){
 }
 
 # create a configuration file with vars
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/examples/fault-tolerant-logs-collection/otel-col-config.yaml
 create_config(){
     sudo mv "$config_file" "$config_file.ORIG"
     sudo tee "$config_file" > /dev/null << EOT
