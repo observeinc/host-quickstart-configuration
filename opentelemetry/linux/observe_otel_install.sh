@@ -68,6 +68,10 @@ create_config(){
     sudo tee "$config_file" > /dev/null << EOT
 extensions:
   health_check:
+  file_storage/filelogreceiver:
+    directory: /var/lib/otelcol/file_storage/receiver
+  file_storage/otlpoutput:
+    directory: /var/lib/otelcol/file_storage/output
 connectors:
   count:
 receivers:
@@ -122,6 +126,7 @@ receivers:
   filelog:
     include: [/var/log/**/*.log, /var/log/syslog]
     include_file_path: true
+    storage: file_storage/filelogreceiver
     retry_on_failure:
       enabled: true
     max_log_size: 4MiB
@@ -177,6 +182,12 @@ exporters:
     endpoint: "${OBSERVE_COLLECTION_ENDPOINT}/v2/otel"
     headers:
       authorization: "Bearer ${OBSERVE_TOKEN}"
+  otlp/custom:
+    endpoint: "${OBSERVE_COLLECTION_ENDPOINT}/v2/otel"
+    headers:
+      authorization: "Bearer ${OBSERVE_TOKEN}"
+    sending_queue:
+      storage: file_storage/otlpoutput
 
 service:
   pipelines:
@@ -199,9 +210,9 @@ service:
     logs:
       receivers: [otlp, filelog]
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
-      exporters: [logging, otlphttp, count]
+      exporters: [logging, otlp/custom, count]
 
-  extensions: [health_check]
+  extensions: [health_check, file_storage/filelogreceiver, file_storage/otlpoutput]
 
 EOT
 
