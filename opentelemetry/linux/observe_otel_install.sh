@@ -65,14 +65,17 @@ install_apt(){
 # create a configuration file with vars
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/examples/fault-tolerant-logs-collection/otel-col-config.yaml
 create_config(){
+    sudo mkdir -p /var/lib/otelcol/file_storage/receiver
+    #sudo mkdir -p /var/lib/otelcol/file_storage/output
+    sudo chown otelcol-contrib /var/lib/otelcol/file_storage/receiver 
+    #sudo chmod u+rw /var/lib/otelcol/file_storage/output
+
     sudo mv "$config_file" "$config_file.ORIG"
     sudo tee "$config_file" > /dev/null << EOT
 extensions:
   health_check:
   file_storage/filelogreceiver:
     directory: /var/lib/otelcol/file_storage/receiver
-  file_storage/otlpoutput:
-    directory: /var/lib/otelcol/file_storage/output
 connectors:
   count:
 receivers:
@@ -192,7 +195,7 @@ exporters:
     headers:
       authorization: "Bearer ${OBSERVE_TOKEN}"
   otlp/custom:
-    endpoint: "${OBSERVE_COLLECTION_ENDPOINT}/v2/otel"
+    endpoint: "${OBSERVE_COLLECTION_ENDPOINT}:443/v2/otel"
     headers:
       authorization: "Bearer ${OBSERVE_TOKEN}"
     sending_queue:
@@ -226,7 +229,7 @@ service:
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
       exporters: [logging, otlphttp]
 
-  extensions: [health_check, file_storage/filelogreceiver, file_storage/otlpoutput]
+  extensions: [health_check, file_storage/filelogreceiver]
 
 EOT
 
