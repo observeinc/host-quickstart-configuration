@@ -140,7 +140,6 @@ receivers:
         expr: 'body matches "otel-contrib"'
 
   journald:
-    directory: /run/log/journal
     units:
       - cron
       - ssh
