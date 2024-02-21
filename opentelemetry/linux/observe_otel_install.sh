@@ -64,6 +64,7 @@ install_apt(){
 
 # create a configuration file with vars
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/examples/fault-tolerant-logs-collection/otel-col-config.yaml
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/storage/filestorage
 create_config(){
     sudo mkdir -p /var/lib/otelcol/file_storage/receiver
     #sudo mkdir -p /var/lib/otelcol/file_storage/output
@@ -74,7 +75,7 @@ create_config(){
     sudo tee "$config_file" > /dev/null << EOT
 extensions:
   health_check:
-  file_storage/filelogreceiver:
+  file_storage:
     directory: /var/lib/otelcol/file_storage/receiver
 connectors:
   count:
@@ -130,7 +131,7 @@ receivers:
   filelog:
     include: [/var/log/**/*.log, /var/log/syslog]
     include_file_path: true
-    storage: file_storage/filelogreceiver
+    storage: file_storage
     retry_on_failure:
       enabled: true
     max_log_size: 4MiB
@@ -143,7 +144,12 @@ receivers:
     units:
       - cron
       - ssh
-      - systemd
+      - systemd-networkd
+      - systemd-resolved
+      - systemd-login
+      - multipathd
+      - systemd-user-sessions
+      - ufw
 
     priority: info
 processors:
@@ -222,14 +228,14 @@ service:
     logs:
       receivers: [otlp, filelog]
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
-      exporters: [logging, otlp/custom, count]
+      exporters: [logging, otlphttp, count]
 
     logs/journal:
       receivers: [otlp, journald]
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
       exporters: [logging, otlphttp]
 
-  extensions: [health_check, file_storage/filelogreceiver]
+  extensions: [health_check, file_storage]
 
 EOT
 
@@ -289,6 +295,8 @@ case ${OS} in
           
           create_config
 
+          sudo adduser otelcol-contrib systemd-journal
+          # sudo su -s /bin/bash -c 'journalctl --lines 5' otelcol-contrib
           sudo systemctl enable otelcol-contrib
           sudo systemctl restart otelcol-contrib
 
