@@ -65,6 +65,7 @@ install_apt(){
 # create a configuration file with vars
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/examples/fault-tolerant-logs-collection/otel-col-config.yaml
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/storage/filestorage
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/hostmetricsreceiver/README.md
 create_config(){
     sudo mkdir -p /var/lib/otelcol/file_storage/receiver
     #sudo mkdir -p /var/lib/otelcol/file_storage/output
@@ -112,10 +113,20 @@ receivers:
         metrics:
           system.cpu.utilization:
             enabled: true
+          system.cpu.frequency:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
+          system.cpu.physical.count:
+            enabled: true
       load:
       memory:
         metrics:
           system.memory.utilization:
+            enabled: true
+          system.linux.memory.available:
+            enabled: true
+          system.memory.limit:
             enabled: true
       disk:
       filesystem:
@@ -123,10 +134,28 @@ receivers:
           system.filesystem.utilization:
             enabled: true
       network:
+        metrics:
+          system.network.conntrack.count:
+            enabled: true
+          system.network.conntrack.max:
+            enabled: true
       paging:
         metrics:
           system.paging.utilization:
             enabled: true
+      processes:
+      process:
+        metrics:
+          process.context_switches:
+            enabled: true
+          process.cpu.utilization
+          process.disk.operations
+          process.handles
+          process.memory.utilization
+          process.open_file_descriptors
+          process.paging.faults
+          process.signals_pending
+          process.threads
 
   filelog:
     include: [/var/log/**/*.log, /var/log/syslog]
@@ -298,6 +327,8 @@ case ${OS} in
           # sudo su -s /bin/bash -c 'journalctl --lines 5' otelcol-contrib
           sudo systemctl enable otelcol-contrib
           sudo systemctl restart otelcol-contrib
+          #journalctl -u otelcol-contrib -f
+
 
           sudo setfacl -Rm u:otelcol-contrib:rX /var/log
         fi
