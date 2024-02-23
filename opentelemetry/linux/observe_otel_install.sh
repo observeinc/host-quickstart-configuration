@@ -66,6 +66,7 @@ install_apt(){
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/examples/fault-tolerant-logs-collection/otel-col-config.yaml
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/storage/filestorage
 # https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/hostmetricsreceiver/README.md
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/attributesprocessor/README.md
 create_config(){
     sudo mkdir -p /var/lib/otelcol/file_storage/receiver
     #sudo mkdir -p /var/lib/otelcol/file_storage/output
@@ -180,6 +181,7 @@ receivers:
       - ufw
 
     priority: info
+
 processors:
   
   transform/truncate:
@@ -199,10 +201,35 @@ processors:
   resourcedetection:
     detectors: [env, system]
     system:
-      hostname_sources: ["os"]
+      hostname_sources:
       resource_attributes:
         host.id:
+          enabled: false
+        os.type:
+           enabled: true       
+        host.arch:
           enabled: true
+        host.name:
+          enabled: true
+        host.ip:
+          enabled: true
+        host.mac:
+          enabled: true
+        host.cpu.vendor.id:
+          enabled: true
+        host.cpu.family:
+          enabled: true
+        host.cpu.model.id:
+          enabled: true
+        host.cpu.model.name:
+          enabled: true
+        host.cpu.stepping:
+          enabled: true
+        host.cpu.cache.l2.size:
+          enabled: true
+        os.description:
+          enabled: true
+        
   
   resourcedetection/cloud:
     detectors: ["gcp", "ec2", "azure"]
@@ -219,7 +246,7 @@ processors:
         host.name:
           enabled: false
         os.type:
-          enabled: true
+          enabled: false
 
 exporters:
   logging:
