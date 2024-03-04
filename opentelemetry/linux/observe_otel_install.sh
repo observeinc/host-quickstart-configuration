@@ -169,6 +169,18 @@ receivers:
       - type: filter
         expr: 'body matches "otel-contrib"'
 
+  filelog/timestamp:
+    include: [/tmp/quickstart_install_complete.log]
+    include_file_path: true
+    start_at: beginning
+    storage: file_storage
+    retry_on_failure:
+      enabled: true
+    max_log_size: 4MiB
+    operators:
+      - type: filter
+        expr: 'body matches "otel-contrib"'
+
   journald:
     units:
       - cron
@@ -179,6 +191,7 @@ receivers:
       - multipathd
       - systemd-user-sessions
       - ufw
+      - otetcol-contrib
 
     priority: info
 
@@ -236,18 +249,6 @@ processors:
     timeout: 2s
     override: false
 
-  resourcedetection/barebones:
-    detectors: [env, system]
-    system:
-      hostname_sources: ["os"]
-      resource_attributes:
-        host.id:
-          enabled: true
-        host.name:
-          enabled: false
-        os.type:
-          enabled: false
-
 exporters:
   logging:
     # loglevel: "DEBUG"
@@ -274,7 +275,12 @@ service:
        receivers: [filestats]
        processors: [resourcedetection, resourcedetection/cloud]
        exporters: [logging, otlphttp]
-       
+
+    logs/timestamp:
+       receivers: [filelog/timestamp]
+       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
+       exporters: [logging, otlphttp] 
+
     logs/config:
        receivers: [filelog/config]
        processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
