@@ -356,6 +356,13 @@ case ${OS} in
           create_config
 
           sudo adduser otelcol-contrib systemd-journal
+          
+          OTEL_BINARY_PATH="/usr/bin/otelcol-contrib"
+          sudo setcap 'cap_dac_read_search=ep' "${OTEL_BINARY_PATH}"
+
+          echo -e "Setting the CAP_DAC_READ_SEARCH Linux capability on the collector binary to allow it to read host metrics from /proc directory: setcap 'cap_dac_read_search=ep' \""${OTEL_BINARY_PATH}"\""
+          echo -e "You can remove it with the following command: sudo setcap -r \"${OTEL_BINARY_PATH}\""
+          echo -e "Without this capability, the collector will not be able to collect some of the host metrics."
 
 
           # sudo su -s /bin/bash -c 'journalctl --lines 5' otelcol-contrib
