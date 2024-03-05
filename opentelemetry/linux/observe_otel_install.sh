@@ -127,8 +127,6 @@ receivers:
             enabled: true
           system.linux.memory.available:
             enabled: true
-          system.memory.limit:
-            enabled: true
       disk:
       filesystem:
         metrics:
@@ -149,14 +147,20 @@ receivers:
         metrics:
           process.context_switches:
             enabled: true
-          process.cpu.utilization
-          process.disk.operations
-          process.handles
-          process.memory.utilization
-          process.open_file_descriptors
-          process.paging.faults
-          process.signals_pending
-          process.threads
+          process.cpu.utilization:
+            enabled: true
+          process.disk.operations:
+            enabled: true      
+          process.memory.utilization:
+            enabled: true      
+          process.open_file_descriptors:
+            enabled: true      
+          process.paging.faults:
+            enabled: true      
+          process.signals_pending:
+            enabled: true      
+          process.threads:
+            enabled: true      
 
   filelog:
     include: [/var/log/**/*.log, /var/log/syslog]
@@ -223,10 +227,6 @@ processors:
         host.arch:
           enabled: true
         host.name:
-          enabled: true
-        host.ip:
-          enabled: true
-        host.mac:
           enabled: true
         host.cpu.vendor.id:
           enabled: true
@@ -297,7 +297,6 @@ service:
       exporters: [logging, otlphttp]
 
   extensions: [health_check, file_storage]
-
 EOT
 
 }
@@ -357,6 +356,8 @@ case ${OS} in
           create_config
 
           sudo adduser otelcol-contrib systemd-journal
+
+
           # sudo su -s /bin/bash -c 'journalctl --lines 5' otelcol-contrib
           sudo systemctl enable otelcol-contrib
           sudo systemctl restart otelcol-contrib
