@@ -63,11 +63,22 @@ install_apt(){
 }
 
 # create a configuration file with vars
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/examples/fault-tolerant-logs-collection/otel-col-config.yaml
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/tree/main/extension/storage/filestorage
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/receiver/hostmetricsreceiver/README.md
+# https://github.com/open-telemetry/opentelemetry-collector-contrib/blob/main/processor/attributesprocessor/README.md
 create_config(){
+    sudo mkdir -p /var/lib/otelcol/file_storage/receiver
+    #sudo mkdir -p /var/lib/otelcol/file_storage/output
+    sudo chown otelcol-contrib /var/lib/otelcol/file_storage/receiver 
+    #sudo chmod u+rw /var/lib/otelcol/file_storage/output
+
     sudo mv "$config_file" "$config_file.ORIG"
     sudo tee "$config_file" > /dev/null << EOT
 extensions:
   health_check:
+  file_storage:
+    directory: /var/lib/otelcol/file_storage/receiver
 connectors:
   count:
 receivers:
@@ -103,10 +114,18 @@ receivers:
         metrics:
           system.cpu.utilization:
             enabled: true
+          system.cpu.frequency:
+            enabled: true
+          system.cpu.logical.count:
+            enabled: true
+          system.cpu.physical.count:
+            enabled: true
       load:
       memory:
         metrics:
           system.memory.utilization:
+            enabled: true
+          system.linux.memory.available:
             enabled: true
       disk:
       filesystem:
@@ -114,20 +133,71 @@ receivers:
           system.filesystem.utilization:
             enabled: true
       network:
+        metrics:
+          system.network.conntrack.count:
+            enabled: true
+          system.network.conntrack.max:
+            enabled: true
       paging:
         metrics:
           system.paging.utilization:
             enabled: true
+      processes:
+      process:
+        metrics:
+          process.context_switches:
+            enabled: true
+          process.cpu.utilization:
+            enabled: true
+          process.disk.operations:
+            enabled: true      
+          process.memory.utilization:
+            enabled: true      
+          process.open_file_descriptors:
+            enabled: true      
+          process.paging.faults:
+            enabled: true      
+          process.signals_pending:
+            enabled: true      
+          process.threads:
+            enabled: true      
 
   filelog:
     include: [/var/log/**/*.log, /var/log/syslog]
     include_file_path: true
+    storage: file_storage
     retry_on_failure:
       enabled: true
     max_log_size: 4MiB
     operators:
       - type: filter
         expr: 'body matches "otel-contrib"'
+
+  filelog/timestamp:
+    include: [/tmp/quickstart_install_complete.log]
+    include_file_path: true
+    start_at: beginning
+    storage: file_storage
+    retry_on_failure:
+      enabled: true
+    max_log_size: 4MiB
+    operators:
+      - type: filter
+        expr: 'body matches "otel-contrib"'
+
+  journald:
+    units:
+      - cron
+      - ssh
+      - systemd-networkd
+      - systemd-resolved
+      - systemd-login
+      - multipathd
+      - systemd-user-sessions
+      - ufw
+      - otetcol-contrib
+
+    priority: info
 
 processors:
   
@@ -148,27 +218,36 @@ processors:
   resourcedetection:
     detectors: [env, system]
     system:
-      hostname_sources: ["os"]
+      hostname_sources:
       resource_attributes:
         host.id:
+          enabled: false
+        os.type:
+           enabled: true       
+        host.arch:
           enabled: true
+        host.name:
+          enabled: true
+        host.cpu.vendor.id:
+          enabled: true
+        host.cpu.family:
+          enabled: true
+        host.cpu.model.id:
+          enabled: true
+        host.cpu.model.name:
+          enabled: true
+        host.cpu.stepping:
+          enabled: true
+        host.cpu.cache.l2.size:
+          enabled: true
+        os.description:
+          enabled: true
+        
   
   resourcedetection/cloud:
     detectors: ["gcp", "ec2", "azure"]
     timeout: 2s
     override: false
-
-  resourcedetection/barebones:
-    detectors: [env, system]
-    system:
-      hostname_sources: ["os"]
-      resource_attributes:
-        host.id:
-          enabled: true
-        host.name:
-          enabled: false
-        os.type:
-          enabled: true
 
 exporters:
   logging:
@@ -177,6 +256,12 @@ exporters:
     endpoint: "${OBSERVE_COLLECTION_ENDPOINT}/v2/otel"
     headers:
       authorization: "Bearer ${OBSERVE_TOKEN}"
+  otlp/custom:
+    endpoint: "${OBSERVE_COLLECTION_ENDPOINT}:443/v2/otel"
+    headers:
+      authorization: "Bearer ${OBSERVE_TOKEN}"
+    sending_queue:
+      storage: file_storage/otlpoutput
 
 service:
   pipelines:
@@ -190,7 +275,12 @@ service:
        receivers: [filestats]
        processors: [resourcedetection, resourcedetection/cloud]
        exporters: [logging, otlphttp]
-       
+
+    logs/timestamp:
+       receivers: [filelog/timestamp]
+       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
+       exporters: [logging, otlphttp] 
+
     logs/config:
        receivers: [filelog/config]
        processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
@@ -201,8 +291,12 @@ service:
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
       exporters: [logging, otlphttp, count]
 
-  extensions: [health_check]
+    logs/journal:
+      receivers: [otlp, journald]
+      processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
+      exporters: [logging, otlphttp]
 
+  extensions: [health_check, file_storage]
 EOT
 
 }
@@ -261,8 +355,21 @@ case ${OS} in
           
           create_config
 
+          sudo adduser otelcol-contrib systemd-journal
+          
+          OTEL_BINARY_PATH="/usr/bin/otelcol-contrib"
+          sudo setcap 'cap_dac_read_search=ep' "${OTEL_BINARY_PATH}"
+
+          echo -e "Setting the CAP_DAC_READ_SEARCH Linux capability on the collector binary to allow it to read host metrics from /proc directory: setcap 'cap_dac_read_search=ep' \""${OTEL_BINARY_PATH}"\""
+          echo -e "You can remove it with the following command: sudo setcap -r \"${OTEL_BINARY_PATH}\""
+          echo -e "Without this capability, the collector will not be able to collect some of the host metrics."
+
+
+          # sudo su -s /bin/bash -c 'journalctl --lines 5' otelcol-contrib
           sudo systemctl enable otelcol-contrib
           sudo systemctl restart otelcol-contrib
+          #journalctl -u otelcol-contrib -f
+
 
           sudo setfacl -Rm u:otelcol-contrib:rX /var/log
         fi
