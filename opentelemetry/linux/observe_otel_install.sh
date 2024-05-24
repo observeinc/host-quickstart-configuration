@@ -68,6 +68,8 @@ create_config(){
     sudo tee "$config_file" > /dev/null << EOT
 extensions:
   health_check:
+  file_storage:
+    directory: /var/lib/otelcol/file_storage/receiver
 connectors:
   count:
 receivers:
@@ -122,6 +124,7 @@ receivers:
   filelog:
     include: [/var/log/**/*.log, /var/log/syslog]
     include_file_path: true
+    storage: file_storage
     retry_on_failure:
       enabled: true
     max_log_size: 4MiB
@@ -201,7 +204,7 @@ service:
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
       exporters: [logging, otlphttp, count]
 
-  extensions: [health_check]
+  extensions: [health_check, file_storage]
 
 EOT
 
