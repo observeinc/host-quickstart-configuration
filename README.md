@@ -3,9 +3,6 @@ To quickly test how the app works with a vm run the following script to install 
 
 ### Linux Install
 ```
-# Important - file_storage extension needs directory created
-mkdir -p /var/lib/otelcol/file_storage/receiver
-
 curl https://raw.githubusercontent.com/observeinc/host-quickstart-configuration/main/opentelemetry/linux/observe_otel_install.sh | bash -s -- --observe_collection_endpoint "${OBSERVE_COLLECTION_ENDPOINT}" --observe_token "${OBSERVE_TOKEN}"
 ```
 
