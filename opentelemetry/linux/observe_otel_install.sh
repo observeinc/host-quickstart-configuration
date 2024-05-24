@@ -64,10 +64,15 @@ install_apt(){
 
 # create a configuration file with vars
 create_config(){
+    # Important - file_storage extension needs directory created
+    mkdir -p /var/lib/otelcol/file_storage/receiver
+
     sudo mv "$config_file" "$config_file.ORIG"
     sudo tee "$config_file" > /dev/null << EOT
 extensions:
   health_check:
+  file_storage:
+    directory: /var/lib/otelcol/file_storage/receiver
 connectors:
   count:
 receivers:
@@ -122,6 +127,7 @@ receivers:
   filelog:
     include: [/var/log/**/*.log, /var/log/syslog]
     include_file_path: true
+    storage: file_storage
     retry_on_failure:
       enabled: true
     max_log_size: 4MiB
@@ -201,7 +207,7 @@ service:
       processors: [memory_limiter, transform/truncate, resourcedetection, resourcedetection/cloud, batch]
       exporters: [logging, otlphttp, count]
 
-  extensions: [health_check]
+  extensions: [health_check, file_storage]
 
 EOT
 
