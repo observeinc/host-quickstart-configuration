@@ -65,7 +65,7 @@ install_apt(){
 # create a configuration file with vars
 create_config(){
     # Important - file_storage extension needs directory created
-    mkdir -p /var/lib/otelcol/file_storage/receiver
+    sudo mkdir -p /var/lib/otelcol/file_storage/receiver
 
     sudo mv "$config_file" "$config_file.ORIG"
     sudo tee "$config_file" > /dev/null << EOT
