@@ -5,6 +5,15 @@ OBSERVE_TOKEN=""
 BRANCH="main"
 UNINSTALL=""
 
+apt_filelog_dir="/var/lib/otelcol-contrib/file_storage/receiver"
+apt_destination_dir="/etc/otelcol-contrib"
+apt_config_file="${apt_destination_dir}/config.yaml"
+service="otelcol-contrib"; 
+otel_version="0.90.1"
+package="${service}_${otel_version}_linux_amd64.deb"
+version_string="v${otel_version}/${package}"
+spacer="################################################################"
+
 # parse input flags
 while [[ "$#" -gt 0 ]]; do
   case $1 in
@@ -23,7 +32,7 @@ while [[ "$#" -gt 0 ]]; do
       ;;
     --uninstall)
       UNINSTALL="true"
-      shift 2
+      break
       ;;
     *)
       echo "Unknown parameter: $1" >&2
@@ -32,11 +41,13 @@ while [[ "$#" -gt 0 ]]; do
   esac
 done
 
-# Check if --host and --token are provided
-if [ -z "$OBSERVE_COLLECTION_ENDPOINT" ] || [ -z "$OBSERVE_TOKEN" ]; then
-  echo "Usage: $0 --observe_collection_endpoint OBSERVE_COLLECTION_ENDPOINT --observe_token OBSERVE_TOKEN"
-  exit 1
-fi
+check_host_token(){
+  # Check if --host and --token are provided
+  if [ -z "$OBSERVE_COLLECTION_ENDPOINT" ] || [ -z "$OBSERVE_TOKEN" ]; then
+    echo "Usage: $0 --observe_collection_endpoint OBSERVE_COLLECTION_ENDPOINT --observe_token OBSERVE_TOKEN"
+    exit 1
+  fi
+}
 
 # what os are we on
 get_os(){
@@ -58,21 +69,26 @@ get_os(){
 # debian install
 install_apt(){
     sudo apt-get -y install wget systemctl acl
-    wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/v0.90.1/otelcol-contrib_0.90.1_linux_amd64.deb
-    sudo dpkg -i otelcol-contrib_0.90.1_linux_amd64.deb
+    wget https://github.com/open-telemetry/opentelemetry-collector-releases/releases/download/$version_string
+    sudo dpkg -i $package
 }
 
 # create a configuration file with vars
 create_config(){
     # Important - file_storage extension needs directory created
-    sudo mkdir -p /var/lib/otelcol/file_storage/receiver
+    sudo mkdir -p "${apt_filelog_dir}"
 
-    sudo mv "$config_file" "$config_file.ORIG"
-    sudo tee "$config_file" > /dev/null << EOT
+    sudo chown $service "${apt_filelog_dir}"
+
+    sudo adduser $service systemd-journal
+    sudo setcap 'cap_dac_read_search=ep' /usr/bin/$service
+
+    sudo mv "$apt_config_file" "$apt_config_file.ORIG"
+    sudo tee "$apt_config_file" > /dev/null << EOT
 extensions:
   health_check:
   file_storage:
-    directory: /var/lib/otelcol/file_storage/receiver
+    directory: ${apt_filelog_dir}
 connectors:
   count:
 receivers:
@@ -82,12 +98,12 @@ receivers:
         max_request_body_size: 10485760
 
   filestats:
-    include: /etc/otelcol-contrib/config.yaml
+    include: /etc/${service}/config.yaml
     collection_interval: 240m
     initial_delay: 60s
 
   filelog/config:
-    include: [ /etc/otelcol-contrib/config.yaml ]
+    include: [ /etc/${service}/config.yaml ]
     start_at: beginning
     poll_interval: 5m
     multiline:
@@ -215,9 +231,22 @@ EOT
 
 # uninstall debian
 uninstall_apt(){
-    sudo systemctl stop otelcol-contrib
-    sudo rm -rf "$destination_dir"
-    sudo dpkg --purge otelcol-contrib
+  
+      printf "\n %s \n uninstalling....\n" $spacer
+      sudo systemctl stop $service
+      sudo systemctl disable $service
+
+      sudo rm -rf "$apt_destination_dir"
+      sudo dpkg --purge $service
+      sudo rm -rf "$apt_filelog_dir"
+      
+      #sudo rm /etc/systemd/system/$service
+      sudo systemctl daemon-reload 
+      sudo systemctl reset-failed
+
+      sudo deluser $service systemd-journal
+      sudo setcap -r 'cap_dac_read_search=ep' /usr/bin/$service
+      printf "\n uninstall complete \n %s \n" $spacer
 
 }
 
@@ -230,9 +259,9 @@ install_yum(){
 
 # uninstall rhel
 uninstall_yum(){
-    sudo systemctl stop otelcol-contrib
+    sudo systemctl stop $service
     sudo rm -rf "$destination_dir"
-    sudo yum remove otelcol-contrib -y
+    sudo yum remove $service -y
 }
 
 OS=$(get_os)
@@ -253,24 +282,24 @@ case ${OS} in
         fi
     ;;
     ubuntu|debian)
-        destination_dir="/etc/otelcol-contrib"
-        config_file="${destination_dir}/config.yaml"
-
-        if [ "$UNINSTALL" = "true" ]; then
+        printf "Uninstall = %s" "$UNINSTALL"
+        if [[ "$UNINSTALL" == "true" ]]; then
           uninstall_apt
           sudo apt -y remove acl
+
         else
-          
+          check_host_token
+
           install_apt
           
           sudo apt-get install acl -y
           
           create_config
 
-          sudo systemctl enable otelcol-contrib
-          sudo systemctl restart otelcol-contrib
+          sudo systemctl enable $service
+          sudo systemctl restart $service
 
-          sudo setfacl -Rm u:otelcol-contrib:rX /var/log
+          sudo setfacl -Rm u:$service:rX /var/log
         fi
     ;;
 esac
