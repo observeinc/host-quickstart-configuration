@@ -34,10 +34,10 @@ Add your Observe token and collection url to the config below and save the file.
 
 ```markdown
 # Observe data token
-token: "OBSERVE_TOKEN"
+token: "${OBSERVE_TOKEN?}"
 
 # Target Observe collection url
-observe_url: "https://OBSERVE_CUSTOMER.collect.observeinc.com"
+observe_url: "https://${OBSERVE_CUSTOMER?}.collect.observeinc.com"
 
 host_monitoring:
   enabled: true
