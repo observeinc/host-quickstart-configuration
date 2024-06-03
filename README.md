@@ -76,7 +76,8 @@ observe-agent status
 
 #### Uninstall
 ```markdown
-sudo apt-get remove observe-agent
+sudo systemctl stop observe-agent
+sudo apt-get purge observe-agent
 ```
 
 ### Non-Debian Distribution
