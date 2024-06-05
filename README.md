@@ -37,7 +37,7 @@ Add your Observe token and collection url to the config below and save the file.
 token: "${OBSERVE_TOKEN?}"
 
 # Target Observe collection url
-observe_url: "${OBSERVE_COLLECTION_ENDPOINT}"
+observe_url: "${OBSERVE_COLLECTION_ENDPOINT?}"
 
 host_monitoring:
   enabled: true
