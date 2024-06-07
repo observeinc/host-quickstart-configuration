@@ -24,41 +24,9 @@ observe-agent version
 
 **Configure the Observe Agent**
 
-Open the agent config file `/etc/observe-agent/observe-agent.yaml` with superuser permissions which will allow you to edit and save changes to the file.
-
-```yaml
-sudo vim /etc/observe-agent/observe-agent.yaml
-```
-
-Add your Observe token and collection url to the config below and save the file. 
-
+Configure the Observe Agent with the following command.
 ```markdown
-# Observe data token
-token: "${OBSERVE_TOKEN?}"
-
-# Target Observe collection url
-observe_url: "${OBSERVE_COLLECTION_ENDPOINT?}"
-
-host_monitoring:
-  enabled: true
-  logs: 
-    enabled: true
-  metrics:
-    enabled: true
-
-# otel_config_overrides:
-#   exporters:
-#     debug:
-#       verbosity: detailed
-#       sampling_initial: 5
-#       sampling_thereafter: 200
-#   service:
-#     pipelines:
-#       # This will override the existing metrics/host_monitoring pipeline and output to stdout debug instead
-#       metrics/host_monitoring:
-#         receivers: [hostmetrics/host-monitoring]
-#         processors: [memory_limiter]
-#         exporters: [debug]
+sudo observe-agent init-config --token ${OBSERVE_TOKEN?} --observe_url ${OBSERVE_COLLECTION_ENDPOINT?}
 ```
 
 **Start the Observe Agent**
@@ -105,41 +73,9 @@ observe-agent version
 
 **Configure the Observe Agent**
 
-Open the agent config file `/etc/observe-agent/observe-agent.yaml` with superuser permissions which will allow you to edit and save changes to the file.
-
-```yaml
-sudo vi /etc/observe-agent/observe-agent.yaml
-```
-
-Add your Observe token and collection url to the config below and save the file. 
-
+Configure the Observe Agent with the following command.
 ```markdown
-# Observe data token
-token: "${OBSERVE_TOKEN?}"
-
-# Target Observe collection url
-observe_url: "${OBSERVE_COLLECTION_ENDPOINT?}"
-
-host_monitoring:
-  enabled: true
-  logs: 
-    enabled: true
-  metrics:
-    enabled: true
-
-# otel_config_overrides:
-#   exporters:
-#     debug:
-#       verbosity: detailed
-#       sampling_initial: 5
-#       sampling_thereafter: 200
-#   service:
-#     pipelines:
-#       # This will override the existing metrics/host_monitoring pipeline and output to stdout debug instead
-#       metrics/host_monitoring:
-#         receivers: [hostmetrics/host-monitoring]
-#         processors: [memory_limiter]
-#         exporters: [debug]
+sudo observe-agent init-config --token ${OBSERVE_TOKEN?} --observe_url ${OBSERVE_COLLECTION_ENDPOINT?}
 ```
 
 **Start the Observe Agent**
