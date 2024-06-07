@@ -24,7 +24,7 @@ observe-agent version
 
 **Configure the Observe Agent**
 
-Configure the Observe Agent with the following command.
+Configure the Observe Agent with the following command. Replace OBSERVE_TOKEN and OBSERVE_COLLECTION_ENDPOINT with the appropriate values and run on each host.
 ```markdown
 sudo observe-agent init-config --token ${OBSERVE_TOKEN?} --observe_url ${OBSERVE_COLLECTION_ENDPOINT?}
 ```
@@ -73,7 +73,7 @@ observe-agent version
 
 **Configure the Observe Agent**
 
-Configure the Observe Agent with the following command.
+Configure the Observe Agent with the following command. Replace OBSERVE_TOKEN and OBSERVE_COLLECTION_ENDPOINT with the appropriate values and run on each host.
 ```markdown
 sudo observe-agent init-config --token ${OBSERVE_TOKEN?} --observe_url ${OBSERVE_COLLECTION_ENDPOINT?}
 ```
