@@ -24,41 +24,14 @@ observe-agent version
 
 **Configure the Observe Agent**
 
-Open the agent config file `/etc/observe-agent/observe-agent.yaml` with superuser permissions which will allow you to edit and save changes to the file.
-
-```yaml
-sudo vim /etc/observe-agent/observe-agent.yaml
-```
-
-Add your Observe token and collection url to the config below and save the file. 
-
+Configure the Observe Agent with the following command. Replace OBSERVE_TOKEN and OBSERVE_COLLECTION_ENDPOINT with the appropriate values and run on each host.
 ```markdown
-# Observe data token
-token: "${OBSERVE_TOKEN?}"
-
-# Target Observe collection url
-observe_url: "${OBSERVE_COLLECTION_ENDPOINT?}"
-
-host_monitoring:
-  enabled: true
-  logs: 
-    enabled: true
-  metrics:
-    enabled: true
-
-# otel_config_overrides:
-#   exporters:
-#     debug:
-#       verbosity: detailed
-#       sampling_initial: 5
-#       sampling_thereafter: 200
-#   service:
-#     pipelines:
-#       # This will override the existing metrics/host_monitoring pipeline and output to stdout debug instead
-#       metrics/host_monitoring:
-#         receivers: [hostmetrics/host-monitoring]
-#         processors: [memory_limiter]
-#         exporters: [debug]
+sudo observe-agent init-config \
+--token ${OBSERVE_TOKEN?} \
+--observe_url ${OBSERVE_COLLECTION_ENDPOINT?} \
+--host_monitoring.enabled=true \
+--host_monitoring.logs.enabled=true \
+--host_monitoring.metrics.enabled=true
 ```
 
 **Start the Observe Agent**
@@ -80,21 +53,58 @@ sudo systemctl stop observe-agent
 sudo apt-get purge observe-agent
 ```
 
-### Non-Debian Distribution
-For any other distributions, run the following command.
+### RedHat-based Distributions
+If your host is running a RedHat based distribution (Amazon Linux, CentOS, RedHat) you can install the Observe Agent. 
 
+**Install the Observe Agent**
+
+Install the `observe-agent` package. You’ll need to first add the Observe yum repository to your trusted repositories in your `yum.repos.d` folder.
+
+```markdown
+echo '[fury]
+name=Gemfury Private Repo
+baseurl=https://yum.fury.io/observeinc/
+enabled=1
+gpgcheck=0' | sudo tee /etc/yum.repos.d/fury.repo
+
+sudo yum install observe-agent
 ```
-curl https://raw.githubusercontent.com/observeinc/host-quickstart-configuration/main/opentelemetry/linux/observe_otel_install.sh | bash -s -- --observe_collection_endpoint "${OBSERVE_COLLECTION_ENDPOINT}" --observe_token "${OBSERVE_TOKEN}"
+
+To validate that the agent is installed correctly, you can run the `version` command. 
+
+```markdown
+observe-agent version
+```
+
+**Configure the Observe Agent**
+
+Configure the Observe Agent with the following command. Replace OBSERVE_TOKEN and OBSERVE_COLLECTION_ENDPOINT with the appropriate values and run on each host.
+```markdown
+sudo observe-agent init-config \
+--token ${OBSERVE_TOKEN?} \
+--observe_url ${OBSERVE_COLLECTION_ENDPOINT?} \
+--host_monitoring.enabled=true \
+--host_monitoring.logs.enabled=true \
+--host_monitoring.metrics.enabled=true
+```
+
+**Start the Observe Agent**
+
+Now that the configuration is in place, you can start the agent with the following command
+
+```markdown
+sudo systemctl enable --now observe-agent
 ```
 
 #### Check Status
-```
-journalctl -u otelcol-contrib -f
+```markdown
+observe-agent status
 ```
 
 #### Uninstall
-```
-curl https://raw.githubusercontent.com/observeinc/host-quickstart-configuration/main/opentelemetry/linux/observe_otel_install.sh | bash -s -- --observe_collection_endpoint "${OBSERVE_COLLECTION_ENDPOINT}" --observe_token "${OBSERVE_TOKEN}" --uninstall
+```markdown
+sudo systemctl stop observe-agent
+sudo yum erase observe-agent -y
 ```
 
 ## Windows Install
