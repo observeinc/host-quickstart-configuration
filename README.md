@@ -93,7 +93,7 @@ observe-agent status
 
 #### Uninstall
 ```markdown
-sudo service observe-agent stop
+sudo systemctl stop observe-agent
 sudo yum erase observe-agent -y
 ```
 
